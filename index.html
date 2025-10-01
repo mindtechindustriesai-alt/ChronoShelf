@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChronoShelf - MindTech</title>
+    
+    <!-- Simple Scanner Library -->
+    <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0a0a2a, #1a2a6c, #2a3a9c);
+            color: #fff;
+            min-height: 100vh;
+            padding: 15px;
+        }
+        
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            padding: 15px 0;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            font-size: 2rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            margin-bottom: 5px;
+            color: #00ffff;
+        }
+        
+        .tagline {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+        
+        .dashboard {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .card {
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .card h2 {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            color: #00ffff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .add-product-form {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .form-group label {
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+        
+        .form-group input, .form-group select {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1rem;
+        }
+        
+        .btn {
+            padding: 14px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 50px;
+            font-size: 1rem;
+            width: 100%;
+        }
+        
+        .btn-primary {
+            background: #00a8ff;
+            color: white;
+        }
+        
+        .btn-primary:active {
+            background: #0097e6;
+            transform: scale(0.98);
+        }
+        
+        .btn-secondary {
+            background: #1a2a6c;
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+        
+        .inventory-list {
+            list-style: none;
+            margin-top: 15px;
+        }
+        
+        .inventory-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .item-info h3 {
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+        }
+        
+        .item-details {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        .expiry-warning {
+            color: #ff6b6b;
+            font-weight: bold;
+        }
+        
+        .batch-number {
+            color: #00ffff;
+            font-weight: bold;
+        }
+        
+        .item-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .btn-small {
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            min-height: auto;
+            width: auto;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #00ffff;
+        }
+        
+        .stat-label {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+        
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #4CAF50;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            opacity: 0;
+            transition: all 0.5s ease;
+            z-index: 1000;
+            max-width: 90%;
+        }
+        
+        .notification.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+        
+        /* Scanner Modal */
+        .scanner-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            padding: 20px;
+        }
+        
+        .scanner-modal.active {
+            display: flex;
+        }
+        
+        #scanner-container {
+            width: 100%;
+            max-width: 400px;
+            height: 300px;
+            background: black;
+            position: relative;
+            border: 3px solid #00ffff;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        .scanner-guide {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            height: 2px;
+            background: #00ffff;
+            box-shadow: 0 0 10px #00ffff;
+        }
+        
+        .scanner-controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .permission-message {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            max-width: 400px;
+        }
+        
+        .scanner-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .card {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 1.7rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            #scanner-container {
+                height: 250px;
+            }
+            
+            .scanner-controls {
+                flex-direction: column;
+                width: 100%;
+                max-width: 300px;
+            }
+            
+            .scanner-controls .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Deep Tech Startup Screen -->
+    <div id="startup-screen" style="
+        position: fixed; 
+        top: 0; 
+        left: 0; 
+        width: 100%; 
+        height: 100%; 
+        background: linear-gradient(135deg, #0a0a2a, #1a2a6c, #000);
+        display: flex; 
+        flex-direction: column; 
+        justify-content: center; 
+        align-items: center; 
+        z-index: 9999;
+        color: white;
+        font-family: 'Courier New', monospace;
+    ">
+        <div style="text-align: center; animation: pulse 2s infinite;">
+            <div style="font-size: 3rem; margin-bottom: 20px;">🔬</div>
+            <h1 style="font-size: 2rem; margin-bottom: 10px; color: #00ffff;">CHRONOSHELF AI</h1>
+            <p style="font-size: 1rem; opacity: 0.8;">Initializing Neural Inventory Matrix</p>
+            <div style="width: 200px; height: 4px; background: rgba(255,255,255,0.2); margin: 20px auto; border-radius: 2px;">
+                <div id="startup-progress" style="width: 0%; height: 100%; background: #00ffff; border-radius: 2px; transition: width 3s linear;"></div>
+            </div>
+            <p style="font-size: 0.8rem; margin-top: 20px;">Powered by MindTech</p>
+        </div>
+    </div>
+
+    <!-- Barcode Scanner Modal -->
+    <div class="scanner-modal" id="scanner-modal">
+        <div class="permission-message">
+            <h3>📷 Camera Access Required</h3>
+            <p>Please allow camera permissions when prompted to use the barcode scanner.</p>
+        </div>
+        
+        <div class="scanner-options">
+            <button class="btn btn-success" id="try-simple-camera">
+                📱 Try Simple Camera
+            </button>
+            <button class="btn btn-warning" id="try-advanced-scanner">
+                🔧 Try Advanced Scanner
+            </button>
+            <button class="btn btn-secondary" id="use-test-mode">
+                🧪 Use Test Mode
+            </button>
+        </div>
+        
+        <div id="scanner-container">
+            <div class="scanner-guide"></div>
+            <div id="qr-reader" style="width: 100%; height: 100%;"></div>
+        </div>
+        
+        <div class="scanner-controls">
+            <button class="btn btn-danger" id="close-scanner">
+                ❌ Close Scanner
+            </button>
+        </div>
+        
+        <p style="margin-top: 20px; text-align: center; color: #00ffff;">
+            Point camera at barcode. Works best in good lighting.
+        </p>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1>🛒 ChronoShelf</h1>
+            <p class="tagline">AI-Powered Inventory Management</p>
+        </header>
+
+        <div class="dashboard">
+            <div class="card">
+                <h2>📦 Add New Product</h2>
+                <form class="add-product-form" id="product-form">
+                    <div class="form-group">
+                        <label for="product-name">Product Name</label>
+                        <input type="text" id="product-name" placeholder="Enter product name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="barcode">Barcode (Scan or type)</label>
+                        <input type="text" id="barcode" placeholder="Click scan button or type barcode">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="product-category">Category</label>
+                        <select id="product-category">
+                            <option value="dairy">Dairy</option>
+                            <option value="meat">Meat</option>
+                            <option value="produce">Produce</option>
+                            <option value="bakery">Bakery</option>
+                            <option value="frozen">Frozen</option>
+                            <option value="beverages">Beverages</option>
+                            <option value="canned">Canned Goods</option>
+                            <option value="pharma">Pharmaceuticals</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <!-- BATCH NUMBER FIELD -->
+                    <div class="form-group">
+                        <label for="batch-number">Batch Number</label>
+                        <input type="text" id="batch-number" placeholder="Enter batch number (optional)">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="expiry-date">Expiry Date</label>
+                        <input type="date" id="expiry-date" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="quantity">Quantity</label>
+                        <input type="number" id="quantity" placeholder="Enter quantity" value="1" min="1">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        ➕ Add to Inventory
+                    </button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2>📋 Current Inventory</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="total-items">0</div>
+                        <div class="stat-label">Total Items</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="expiring-soon">0</div>
+                        <div class="stat-label">Expiring Soon</div>
+                    </div>
+                </div>
+                
+                <ul class="inventory-list" id="inventory-list">
+                    <li class="inventory-item empty">
+                        <span>No products added yet. Add your first product above!</span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h2>⚡ Quick Actions</h2>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <button class="btn btn-secondary" id="scan-btn">
+                        📷 Scan Barcode (Multiple Methods)
+                    </button>
+                    <button class="btn btn-secondary" id="save-btn">
+                        💾 Save Inventory
+                    </button>
+                    <button class="btn btn-secondary" id="clear-data">
+                        🗑️ Clear All Data
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mind Tech Branding -->
+        <div style="text-align: center; margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 10px;">
+            <p style="font-size: 0.9rem; opacity: 0.8;">
+                <strong>Powered by MindTech</strong><br>
+                Advanced AI Inventory Solutions
+            </p>
+        </div>
+
+        <div id="notification" class="notification">
+            ✅ Inventory saved successfully!
+        </div>
+    </div>
+
+    <script>
+        // Startup sequence - Reduced to 3 seconds
+        setTimeout(function() {
+            document.getElementById('startup-progress').style.width = '100%';
+        }, 100);
+        
+        setTimeout(function() {
+            document.getElementById('startup-screen').style.opacity = '0';
+            setTimeout(function() {
+                document.getElementById('startup-screen').style.display = 'none';
+            }, 1000);
+        }, 3000);
+
+        // Inventory management code
+        let inventory = JSON.parse(localStorage.getItem('chronoshelf-inventory')) || [];
+        let html5QrcodeScanner = null;
+        let currentStream = null;
+        
+        const productForm = document.getElementById('product-form');
+        const inventoryList = document.getElementById('inventory-list');
+        const totalItemsEl = document.getElementById('total-items');
+        const expiringSoonEl = document.getElementById('expiring-soon');
+        const saveBtn = document.getElementById('save-btn');
+        const clearDataBtn = document.getElementById('clear-data');
+        const notification = document.getElementById('notification');
+        const scanBtn = document.getElementById('scan-btn');
+        const scannerModal = document.getElementById('scanner-modal');
+        const closeScannerBtn = document.getElementById('close-scanner');
+        const trySimpleCameraBtn = document.getElementById('try-simple-camera');
+        const tryAdvancedScannerBtn = document.getElementById('try-advanced-scanner');
+        const useTestModeBtn = document.getElementById('use-test-mode');
+        const barcodeInput = document.getElementById('barcode');
+
+        // Enhanced Barcode database with batch examples
+        const barcodeDatabase = {
+            '123456789012': { name: 'Fresh Milk 2L', category: 'dairy', batch: 'BATCH-MLK-2024' },
+            '234567890123': { name: 'Whole Wheat Bread', category: 'bakery', batch: 'BATCH-BRD-2024' },
+            '345678901234': { name: 'Chicken Breast', category: 'meat', batch: 'BATCH-CHK-2024' },
+            '456789012345': { name: 'Organic Apples', category: 'produce', batch: 'BATCH-APP-2024' },
+            '567890123456': { name: 'Frozen Pizza', category: 'frozen', batch: 'BATCH-PZZ-2024' },
+            '678901234567': { name: 'Orange Juice', category: 'beverages', batch: 'BATCH-JUC-2024' },
+            '789012345678': { name: 'Canned Beans', category: 'canned', batch: 'BATCH-BNS-2024' },
+            '890123456789': { name: 'Yogurt Pack', category: 'dairy', batch: 'BATCH-YGT-2024' },
+            '901234567890': { name: 'Ground Beef', category: 'meat', batch: 'BATCH-BF-2024' },
+            '012345678901': { name: 'Pain Relief Tablets', category: 'pharma', batch: 'BATCH-PHR-2024' }
+        };
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            updateInventoryDisplay();
+            updateStats();
+            
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('expiry-date').min = today;
+        });
+
+        // SCANNER FUNCTIONS - MULTIPLE METHODS
+        scanBtn.addEventListener('click', function() {
+            openScannerModal();
+        });
+
+        trySimpleCameraBtn.addEventListener('click', function() {
+            startSimpleCamera();
+        });
+
+        tryAdvancedScannerBtn.addEventListener('click', function() {
+            startAdvancedScanner();
+        });
+
+        useTestModeBtn.addEventListener('click', function() {
+            simulateBarcodeScan();
+            closeScannerModal();
+        });
+
+        closeScannerBtn.addEventListener('click', function() {
+            closeScannerModal();
+        });
+
+        function openScannerModal() {
+            scannerModal.classList.add('active');
+            showNotification('🔧 Choose your scanning method');
+        }
+
+        function closeScannerModal() {
+            stopAllCameras();
+            scannerModal.classList.remove('active');
+        }
+
+        function stopAllCameras() {
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.stop().then(() => {
+                    console.log("Advanced scanner stopped");
+                }).catch(err => {
+                    console.log("Error stopping scanner:", err);
+                });
+                html5QrcodeScanner = null;
+            }
+            
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+                currentStream = null;
+            }
+            
+            document.getElementById('scanner-container').innerHTML = '<div class="scanner-guide"></div><div id="qr-reader" style="width: 100%; height: 100%;"></div>';
+        }
+
+        // METHOD 1: Simple Camera Access
+        function startSimpleCamera() {
+            stopAllCameras();
+            
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                showNotification('❌ Camera not supported on this browser');
+                simulateBarcodeScan();
+                return;
+            }
+
+            navigator.mediaDevices.getUserMedia({ 
+                video: { 
+                    facingMode: "environment",
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                } 
+            }).then(function(stream) {
+                currentStream = stream;
+                const video = document.createElement('video');
+                video.srcObject = stream;
+                video.setAttribute('playsinline', 'true');
+                video.style.width = '100%';
+                video.style.height = '100%';
+                video.style.objectFit = 'cover';
+                
+                document.getElementById('scanner-container').innerHTML = '';
+                document.getElementById('scanner-container').appendChild(video);
+                video.play();
+                
+                showNotification('✅ Camera active - Point at barcode');
+                
+                // Try to use BarcodeDetector if available
+                if ('BarcodeDetector' in window) {
+                    const barcodeDetector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
+                    
+                    const detectBarcode = () => {
+                        if (!video.videoWidth) {
+                            requestAnimationFrame(detectBarcode);
+                            return;
+                        }
+                        
+                        barcodeDetector.detect(video)
+                            .then(barcodes => {
+                                if (barcodes.length > 0) {
+                                    handleScannedBarcode(barcodes[0].rawValue);
+                                    closeScannerModal();
+                                } else {
+                                    requestAnimationFrame(detectBarcode);
+                                }
+                            })
+                            .catch(err => {
+                                console.log('Barcode detection error, continuing...');
+                                requestAnimationFrame(detectBarcode);
+                            });
+                    };
+                    
+                    video.addEventListener('playing', () => {
+                        detectBarcode();
+                    });
+                }
+                
+            }).catch(function(err) {
+                console.error('Camera error:', err);
+                showNotification('❌ Camera access denied. Try test mode.');
+                simulateBarcodeScan();
+            });
+        }
+
+        // METHOD 2: Advanced Scanner (html5-qrcode)
+        function startAdvancedScanner() {
+            stopAllCameras();
+
+            // Check if HTTPS (required for camera)
+            if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+                showNotification('❌ Advanced scanner requires HTTPS. Try simple camera.');
+                startSimpleCamera();
+                return;
+            }
+
+            html5QrcodeScanner = new Html5Qrcode("qr-reader");
+            
+            const config = { 
+                fps: 10, 
+                qrbox: { width: 250, height: 150 },
+                supportedScanTypes: [
+                    Html5QrcodeScanType.SCAN_TYPE_QR_CODE,
+                    Html5QrcodeScanType.SCAN_TYPE_BARCODE
+                ]
+            };
+
+            html5QrcodeScanner.start(
+                { facingMode: "environment" }, 
+                config,
+                onScanSuccess,
+                onScanFailure
+            ).then(() => {
+                showNotification('✅ Advanced scanner active');
+            }).catch(err => {
+                console.error("Advanced scanner error:", err);
+                showNotification('❌ Advanced scanner failed. Try simple camera.');
+                startSimpleCamera();
+            });
+        }
+
+        function onScanSuccess(decodedText, decodedResult) {
+            console.log(`Scan result: ${decodedText}`, decodedResult);
+            handleScannedBarcode(decodedText);
+            closeScannerModal();
+        }
+
+        function onScanFailure(error) {
+            // Expected to be called often, don't show errors
+        }
+
+        function handleScannedBarcode(barcode) {
+            barcodeInput.value = barcode;
+            
+            if (barcodeDatabase[barcode]) {
+                const product = barcodeDatabase[barcode];
+                document.getElementById('product-name').value = product.name;
+                document.getElementById('product-category').value = product.category;
+                document.getElementById('batch-number').value = product.batch;
+                showNotification(`✅ Scanned: ${product.name}`);
+            } else {
+                document.getElementById('product-name').value = 'Scanned Product';
+                document.getElementById('batch-number').value = `BATCH-${barcode.slice(-6)}`;
+                showNotification(`📦 New barcode: ${barcode}`);
+            }
+            
+            // Auto-fill expiry date (14 days from now)
+            const twoWeeks = new Date();
+            twoWeeks.setDate(twoWeeks.getDate() + 14);
+            document.getElementById('expiry-date').value = twoWeeks.toISOString().split('T')[0];
+            
+            document.getElementById('quantity').focus();
+        }
+
+        function simulateBarcodeScan() {
+            const testBarcodes = Object.keys(barcodeDatabase);
+            const randomBarcode = testBarcodes[Math.floor(Math.random() * testBarcodes.length)];
+            handleScannedBarcode(randomBarcode);
+            showNotification('🧪 Test scan completed - Real scanner requires camera permissions');
+        }
+
+        // PRODUCT MANAGEMENT WITH BATCH NUMBERS
+        productForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const productName = document.getElementById('product-name').value;
+            const barcode = document.getElementById('barcode').value;
+            const category = document.getElementById('product-category').value;
+            const batchNumber = document.getElementById('batch-number').value;
+            const expiryDate = document.getElementById('expiry-date').value;
+            const quantity = parseInt(document.getElementById('quantity').value);
+            
+            const newProduct = {
+                id: Date.now(),
+                name: productName,
+                barcode: barcode,
+                category: category,
+                batchNumber: batchNumber,
+                expiryDate: expiryDate,
+                quantity: quantity,
+                addedDate: new Date().toISOString()
+            };
+            
+            inventory.push(newProduct);
+            saveInventory();
+            updateInventoryDisplay();
+            updateStats();
+            showNotification('✅ Product added to inventory!');
+            
+            productForm.reset();
+            document.getElementById('quantity').value = 1;
+            document.getElementById('batch-number').value = '';
+            barcodeInput.value = '';
+        });
+
+        saveBtn.addEventListener('click', function() {
+            saveBtn.innerHTML = '⏳ Saving...';
+            saveBtn.disabled = true;
+            
+            setTimeout(function() {
+                saveInventory();
+                showNotification('✅ Inventory saved successfully!');
+                
+                saveBtn.innerHTML = '💾 Save Inventory';
+                saveBtn.disabled = false;
+            }, 1000);
+        });
+
+        clearDataBtn.addEventListener('click', function() {
+            if (confirm('Are you sure you want to clear all inventory data?')) {
+                inventory = [];
+                saveInventory();
+                updateInventoryDisplay();
+                updateStats();
+                showNotification('🗑️ All inventory data cleared');
+            }
+        });
+
+        function saveInventory() {
+            localStorage.setItem('chronoshelf-inventory', JSON.stringify(inventory));
+        }
+
+        function updateInventoryDisplay() {
+            if (inventory.length === 0) {
+                inventoryList.innerHTML = '<li class="inventory-item empty"><span>No products added yet. Add your first product above!</span></li>';
+                return;
+            }
+            
+            inventory.sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
+            
+            inventoryList.innerHTML = inventory.map(product => {
+                const expiryDate = new Date(product.expiryDate);
+                const today = new Date();
+                const daysUntilExpiry = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
+                
+                let expiryClass = '';
+                if (daysUntilExpiry <= 3) {
+                    expiryClass = 'expiry-warning';
+                }
+                
+                return `
+                    <li class="inventory-item">
+                        <div class="item-info">
+                            <h3>${product.name}</h3>
+                            <div class="item-details">
+                                ${product.barcode ? 'Barcode: ' + product.barcode + ' | ' : ''}
+                                Category: ${product.category} | 
+                                ${product.batchNumber ? '<span class="batch-number">Batch: ' + product.batchNumber + '</span> | ' : ''}
+                                Quantity: ${product.quantity} | 
+                                <span class="${expiryClass}">
+                                    Expires: ${daysUntilExpiry} days
+                                </span>
+                            </div>
+                        </div>
+                        <div class="item-actions">
+                            <button class="btn btn-small" onclick="removeProduct(${product.id})">🗑️</button>
+                        </div>
+                    </li>
+                `;
+            }).join('');
+        }
+
+        function updateStats() {
+            totalItemsEl.textContent = inventory.reduce((total, product) => total + product.quantity, 0);
+            
+            const today = new Date();
+            const expiringSoon = inventory.filter(product => {
+                const expiryDate = new Date(product.expiryDate);
+                const daysUntilExpiry = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
+                return daysUntilExpiry <= 7;
+            }).length;
+            
+            expiringSoonEl.textContent = expiringSoon;
+        }
+
+        function removeProduct(productId) {
+            inventory = inventory.filter(product => product.id !== productId);
+            saveInventory();
+            updateInventoryDisplay();
+            updateStats();
+            showNotification('🗑️ Product removed from inventory');
+        }
+
+        function showNotification(message) {
+            notification.textContent = message;
+            notification.classList.add('show');
+            
+            setTimeout(function() {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Mobile touch improvements
+        [saveBtn, scanBtn, clearDataBtn].forEach(btn => {
+            btn.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                this.style.opacity = '0.8';
+            });
+            
+            btn.addEventListener('touchend', function() {
+                this.style.opacity = '1';
+            });
+        });
+    </script>
+</body>
+</html>
