@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChronoShelf - MindTech</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background: linear-gradient(135deg, #0a0a2a, #1a2a6c, #2a3a9c); color: #fff; min-height: 100vh; padding: 15px; }
+        .container { max-width: 100%; margin: 0 auto; }
+        header { text-align: center; padding: 15px 0; margin-bottom: 20px; }
+        h1 { font-size: 2rem; color: #00ffff; margin-bottom: 5px; text-shadow: 0 0 10px #00ffff; }
+        .card { background: rgba(0,0,0,0.7); border-radius: 12px; padding: 20px; margin-bottom: 15px; border: 1px solid rgba(0,255,255,0.3); }
+        .form-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+        .form-group label { font-size: 0.9rem; font-weight: bold; }
+        .form-group input, .form-group select { padding: 12px; border: none; border-radius: 8px; background: rgba(255,255,255,0.1); color: white; }
+        .btn { padding: 14px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; margin-bottom: 10px; transition: all 0.3s; }
+        .btn-primary { background: #00a8ff; color: white; }
+        .btn-secondary { background: #1a2a6c; color: white; }
+        .btn-scan { background: linear-gradient(45deg, #ff0080, #00ffff); color: white; font-size: 1.1rem; }
+        .inventory-item { background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid #00ffff; }
+        .batch-number { color: #00ffff; font-weight: bold; }
+        .expiry-warning { color: #ff6b6b; font-weight: bold; }
+        
+        /* Scanner Modal */
+        .scanner-modal {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            padding: 20px;
+        }
+        
+        .scanner-container {
+            width: 100%;
+            max-width: 400px;
+            height: 300px;
+            background: #000;
+            border: 3px solid #00ffff;
+            border-radius: 15px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 20px #00ffff;
+        }
+        
+        .scanner-laser {
+            position: absolute;
+            top: 0;
+            left: 10%;
+            width: 80%;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #00ffff, #ff0080, #00ffff, transparent);
+            box-shadow: 0 0 10px #00ffff, 0 0 20px #ff0080;
+            animation: scan 2s linear infinite;
+        }
+        
+        .scanner-glow {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, transparent 50%, rgba(0,255,255,0.1) 100%);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        .scanner-corner {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #00ffff;
+        }
+        
+        .corner-tl { top: 10px; left: 10px; border-right: none; border-bottom: none; }
+        .corner-tr { top: 10px; right: 10px; border-left: none; border-bottom: none; }
+        .corner-bl { bottom: 10px; left: 10px; border-right: none; border-top: none; }
+        .corner-br { bottom: 10px; right: 10px; border-left: none; border-top: none; }
+        
+        .scanner-text {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 1.2rem;
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff;
+        }
+        
+        .scanner-product {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            color: #00ffff;
+            font-size: 1.1rem;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+        
+        @keyframes scan {
+            0% { top: 0; opacity: 1; }
+            50% { top: 100%; opacity: 0.8; }
+            100% { top: 0; opacity: 1; }
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.3; }
+            50% { opacity: 0.6; }
+            100% { opacity: 0.3; }
+        }
+        
+        .scanner-barcode {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 100px;
+            background: repeating-linear-gradient(
+                90deg,
+                #000,
+                #000 2px,
+                #fff 2px,
+                #fff 4px
+            );
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+        
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #27ae60;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            z-index: 1001;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+        
+        .notification.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛒 ChronoShelf</h1>
+            <p>AI-Powered Inventory Management</p>
+        </header>
+
+        <div class="card">
+            <h2>📦 Add Product</h2>
+            <form id="product-form">
+                <div class="form-group">
+                    <label>Product Name</label>
+                    <input type="text" id="product-name" placeholder="Enter product name" required>
+                </div>
+                <div class="form-group">
+                    <label>Barcode</label>
+                    <input type="text" id="barcode" placeholder="Scanned barcode will appear here" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="product-category" required>
+                        <option value="dairy">Dairy</option>
+                        <option value="meat">Meat</option>
+                        <option value="produce">Produce</option>
+                        <option value="bakery">Bakery</option>
+                        <option value="frozen">Frozen</option>
+                        <option value="beverages">Beverages</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Batch Number</label>
+                    <input type="text" id="batch-number" placeholder="Batch number will auto-fill">
+                </div>
+                <div class="form-group">
+                    <label>Expiry Date</label>
+                    <input type="date" id="expiry-date" required>
+                </div>
+                <div class="form-group">
+                    <label>Quantity</label>
+                    <input type="number" id="quantity" value="1" min="1" required>
+                </div>
+                <button type="submit" class="btn btn-primary">➕ Add to Inventory</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>📋 Inventory</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 1.5rem; font-weight: bold; color: #00ffff;" id="total-items">0</div>
+                    <div style="font-size: 0.8rem;">Total Items</div>
+                </div>
+                <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 1.5rem; font-weight: bold; color: #00ffff;" id="expiring-soon">0</div>
+                    <div style="font-size: 0.8rem;">Expiring Soon</div>
+                </div>
+            </div>
+            <div id="inventory-list">
+                <div class="inventory-item">No products yet. Add your first product!</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>⚡ Actions</h2>
+            <button class="btn btn-scan" onclick="openScanner()">🔦 Futuristic Laser Scan</button>
+            <button class="btn btn-secondary" onclick="saveInventory()">💾 Save Data</button>
+            <button class="btn btn-secondary" onclick="clearData()">🗑️ Clear All</button>
+        </div>
+
+        <div style="text-align: center; margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 10px;">
+            <p style="font-size: 0.9rem;"><strong>Powered by MindTech</strong> - Advanced AI Inventory Solutions</p>
+        </div>
+    </div>
+
+    <!-- Scanner Modal -->
+    <div class="scanner-modal" id="scannerModal">
+        <div class="scanner-container">
+            <div class="scanner-laser"></div>
+            <div class="scanner-glow"></div>
+            <div class="scanner-corner corner-tl"></div>
+            <div class="scanner-corner corner-tr"></div>
+            <div class="scanner-corner corner-bl"></div>
+            <div class="scanner-corner corner-br"></div>
+            <div class="scanner-barcode" id="scannerBarcode"></div>
+            <div class="scanner-product" id="scannerProduct">Scanning...</div>
+        </div>
+        <div class="scanner-text">
+            <div>POINT AT PRODUCT BARCODE</div>
+            <div style="font-size: 0.9rem; margin-top: 5px; color: #ff0080;">AI SCANNING ACTIVE</div>
+        </div>
+        <button class="btn btn-secondary" onclick="closeScanner()" style="margin-top: 20px; width: auto; padding: 10px 20px;">Cancel Scan</button>
+    </div>
+
+    <!-- Notification -->
+    <div class="notification" id="notification"></div>
+
+    <script>
+        // INVENTORY SYSTEM
+        let inventory = JSON.parse(localStorage.getItem('chronoshelf-inventory')) || [];
+        let scanTimeout;
+        
+        // Product database
+        const productDatabase = {
+            '123456789012': { name: 'Fresh Milk 2L', category: 'dairy', batch: 'BATCH-MLK-2024' },
+            '234567890123': { name: 'Whole Wheat Bread', category: 'bakery', batch: 'BATCH-BRD-2024' },
+            '345678901234': { name: 'Chicken Breast', category: 'meat', batch: 'BATCH-CHK-2024' },
+            '456789012345': { name: 'Organic Apples', category: 'produce', batch: 'BATCH-APP-2024' },
+            '567890123456': { name: 'Frozen Pizza', category: 'frozen', batch: 'BATCH-PZZ-2024' },
+            '678901234567': { name: 'Orange Juice', category: 'beverages', batch: 'BATCH-JUC-2024' },
+            '789012345678': { name: 'Greek Yogurt', category: 'dairy', batch: 'BATCH-YGT-2024' },
+            '890123456789': { name: 'Ground Beef', category: 'meat', batch: 'BATCH-BF-2024' },
+            '901234567890': { name: 'Bananas', category: 'produce', batch: 'BATCH-BAN-2024' },
+            '012345678901': { name: 'Ice Cream', category: 'frozen', batch: 'BATCH-ICE-2024' }
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('expiry-date').value = today;
+            updateDisplay();
+        });
+
+        // Scanner Functions
+        function openScanner() {
+            const modal = document.getElementById('scannerModal');
+            const barcode = document.getElementById('scannerBarcode');
+            const productText = document.getElementById('scannerProduct');
+            
+            modal.style.display = 'flex';
+            barcode.style.opacity = '0';
+            productText.style.opacity = '0';
+            productText.textContent = 'Scanning...';
+            
+            // Start scan sequence
+            scanTimeout = setTimeout(() => {
+                // Show barcode animation
+                barcode.style.opacity = '1';
+                
+                setTimeout(() => {
+                    // Select random product
+                    const barcodes = Object.keys(productDatabase);
+                    const randomBarcode = barcodes[Math.floor(Math.random() * barcodes.length)];
+                    const product = productDatabase[randomBarcode];
+                    
+                    // Show product name
+                    productText.textContent = `✓ SCANNED: ${product.name}`;
+                    productText.style.opacity = '1';
+                    
+                    // Auto-fill form after delay
+                    setTimeout(() => {
+                        fillFormWithProduct(randomBarcode, product);
+                        closeScanner();
+                        showNotification(`🎯 Product Scanned: ${product.name}`);
+                    }, 1500);
+                    
+                }, 1000);
+            }, 1000);
+        }
+
+        function closeScanner() {
+            const modal = document.getElementById('scannerModal');
+            modal.style.display = 'none';
+            clearTimeout(scanTimeout);
+        }
+
+        function fillFormWithProduct(barcode, product) {
+            document.getElementById('product-name').value = product.name;
+            document.getElementById('barcode').value = barcode;
+            document.getElementById('product-category').value = product.category;
+            document.getElementById('batch-number').value = product.batch;
+            
+            // Set expiry to 14 days from now
+            const twoWeeks = new Date();
+            twoWeeks.setDate(twoWeeks.getDate() + 14);
+            document.getElementById('expiry-date').value = twoWeeks.toISOString().split('T')[0];
+            
+            document.getElementById('quantity').focus();
+        }
+
+        // Add product
+        document.getElementById('product-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const product = {
+                id: Date.now(),
+                name: document.getElementById('product-name').value,
+                barcode: document.getElementById('barcode').value,
+                category: document.getElementById('product-category').value,
+                batchNumber: document.getElementById('batch-number').value,
+                expiryDate: document.getElementById('expiry-date').value,
+                quantity: parseInt(document.getElementById('quantity').value)
+            };
+            
+            inventory.push(product);
+            updateDisplay();
+            showNotification('✅ Product added to inventory!');
+            
+            // Reset form
+            this.reset();
+            document.getElementById('quantity').value = 1;
+            document.getElementById('expiry-date').value = new Date().toISOString().split('T')[0];
+        });
+
+        // Update display
+        function updateDisplay() {
+            const list = document.getElementById('inventory-list');
+            const totalItems = document.getElementById('total-items');
+            const expiringSoon = document.getElementById('expiring-soon');
+            
+            // Update stats
+            totalItems.textContent = inventory.reduce((sum, item) => sum + item.quantity, 0);
+            
+            const today = new Date();
+            const soonCount = inventory.filter(item => {
+                const days = Math.ceil((new Date(item.expiryDate) - today) / (1000 * 60 * 60 * 24));
+                return days <= 7;
+            }).length;
+            expiringSoon.textContent = soonCount;
+            
+            // Update list
+            if (inventory.length === 0) {
+                list.innerHTML = '<div class="inventory-item">No products yet. Add your first product!</div>';
+                return;
+            }
+            
+            list.innerHTML = inventory.map(item => {
+                const days = Math.ceil((new Date(item.expiryDate) - new Date()) / (1000 * 60 * 60 * 24));
+                const warning = days <= 3 ? 'expiry-warning' : '';
+                
+                return `
+                    <div class="inventory-item">
+                        <strong>${item.name}</strong><br>
+                        ${item.barcode ? 'Barcode: ' + item.barcode + ' • ' : ''}
+                        ${item.category} • 
+                        ${item.batchNumber ? '<span class="batch-number">Batch: ' + item.batchNumber + '</span> • ' : ''}
+                        Qty: ${item.quantity} • 
+                        <span class="${warning}">Expires: ${days} days</span>
+                        <button onclick="removeItem(${item.id})" style="float: right; background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer;">🗑️</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Remove item
+        function removeItem(id) {
+            inventory = inventory.filter(item => item.id !== id);
+            updateDisplay();
+            saveInventory();
+            showNotification('🗑️ Item removed from inventory');
+        }
+
+        // Save to localStorage
+        function saveInventory() {
+            localStorage.setItem('chronoshelf-inventory', JSON.stringify(inventory));
+            showNotification('💾 Inventory data saved!');
+        }
+
+        // Clear all data
+        function clearData() {
+            if (confirm('Clear ALL inventory data? This cannot be undone.')) {
+                inventory = [];
+                localStorage.removeItem('chronoshelf-inventory');
+                updateDisplay();
+                showNotification('🗑️ All inventory data cleared');
+            }
+        }
+
+        // Show notification
+        function showNotification(msg) {
+            const notification = document.getElementById('notification');
+            notification.textContent = msg;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Make functions global
+        window.removeItem = removeItem;
+        window.saveInventory = saveInventory;
+        window.clearData = clearData;
+        window.openScanner = openScanner;
+        window.closeScanner = closeScanner;
+    </script>
+</body>
+</html>
